@@ -136,7 +136,6 @@ let rainOverlays = [];
 
 function animate() {
   requestAnimationFrame(animate);
-
   const sunDir = sunDirectionFromSubsolar();
   earthMaterial.uniforms.sunDirection.value.copy(sunDir);
   sunLight.position.copy(sunDir.clone().multiplyScalar(100));
@@ -144,42 +143,31 @@ function animate() {
   earthMaterial.uniforms.modelMatrix.value.copy(earth.matrixWorld);
   clouds.rotation.y += 0.0001;
 
-  // Rotate rain overlays with clouds
+  // Match blue clouds rotation
   rainOverlays.forEach(overlay => {
     overlay.rotation.y += 0.0001;
   });
 
   const now = new Date();
   satellites.forEach(sprite => {
-    const { satrec, name } = sprite.userData;
-    const eci = satellite.propagate(satrec, now);
-
-    if (!eci.position) {
-      console.warn(`⚠️ Propagation failed for satellite: ${name}`);
-      return;
-    }
-
+    const eci = satellite.propagate(sprite.userData.satrec, now);
     const gmst = satellite.gstime(now);
     const posGd = satellite.eciToGeodetic(eci.position, gmst);
     const lon = satellite.degreesLong(posGd.longitude);
     const lat = satellite.degreesLat(posGd.latitude);
-    const alt = posGd.height * 1000 / 6371;  // Normalize to Earth radius
-
+    const alt = posGd.height * 1000 / 6371;
     const phi = THREE.MathUtils.degToRad(90 - lat);
     const theta = THREE.MathUtils.degToRad(lon);
     const r = 10 + alt;
-
     const x = r * Math.sin(phi) * Math.cos(theta);
     const y = r * Math.cos(phi);
     const z = r * Math.sin(phi) * Math.sin(theta);
-
     sprite.position.set(x, y, z);
   });
 
   controls.update();
   renderer.render(scene, camera);
 }
-
 
 animate();
 
